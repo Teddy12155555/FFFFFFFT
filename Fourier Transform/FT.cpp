@@ -1,5 +1,4 @@
 #include "FT.h"
-
 vector<complex<double>>temppp;
 
 FT::FT()
