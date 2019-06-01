@@ -1,4 +1,6 @@
 #include "FT.h"
+
+
 vector<complex<double>>temppp;
 
 FT::FT()
@@ -241,7 +243,7 @@ Bitmap^FFTtest(Bitmap^ inputIMG)
 
 	vector<complex<double>>FFTarray_W(w);
 	vector<complex<double>>FFTarray_H(h);
-	vector<vector<complex<double>>>R(h,vector<complex<double>>(w));
+	//temp2D = vector<vector<complex<double>>>(h,vector<complex<double>>(w));
 	////compute w
 	vector<complex<double>> row;
 	for (int i = 0; i< h; i++)
@@ -264,29 +266,6 @@ Bitmap^FFTtest(Bitmap^ inputIMG)
 			*(it + j * w) = col[j];
 	}
 	vector<complex<double>>rowTemp;
-	// h == w 
-	//for (int i=0; i < h; i++)
-	//{
-	//	auto it = IMG.begin() + i * w;
-	//	rowTemp.assign(it, it + w);
-	//	for (int j = 0; j < w; j++)
-	//	{
-	//		R[j][h - i-1] = rowTemp[j];
-	//	}
-	//}
-	////2Mapping1
-	//for (int i = 0; i < h; i++)
-	//{
-	//	for (int j = 0; j < w; j++)
-	//	{
-	//		IMG[i*w + j] = R[i][j];
-	//	}
-	//}
-
-	//for (int i = 0; i < HW; i++)
-	//{
-	//	cout << IMG[i].real() << " +j " << IMG[i].imag() << endl;
-	//}
 	//scale
 	for (int i = 0; i < HW; i++)
 		IMG[i] /= sqrt(HW);
@@ -445,7 +424,62 @@ int Index_Bit(int index,int bits)
 		re += temp[i] * pow(2, temp.size() - 1 - i);
 	return re;
 }
-vector<complex<double>>getDebug()
+vector<complex<double>>getTemppp()
 {
 	return temppp;
+}
+
+Bitmap^ PassFilter(Bitmap^ inputIMG, double CutOff, double attenuation, bool isLow) {
+
+	Bitmap ^outputIMG = gcnew Bitmap(inputIMG->Width, inputIMG->Height);
+	BitmapData ^inputData = inputIMG->LockBits(Rectangle(0, 0, inputIMG->Width, inputIMG->Height), ImageLockMode::ReadOnly, PixelFormat::Format24bppRgb);
+	BitmapData ^outputData = outputIMG->LockBits(Rectangle(0, 0, inputIMG->Width, inputIMG->Height), ImageLockMode::WriteOnly, PixelFormat::Format24bppRgb);
+	Byte * input = (Byte*)inputData->Scan0.ToPointer();
+	Byte * output = (Byte*)outputData->Scan0.ToPointer();
+	//三小平移的
+	int HW = inputIMG->Width * inputIMG->Height;
+	vector<complex<double>>IMG = temppp;
+	int h = inputIMG->Height;
+	int w = inputIMG->Width;
+	/*for (int i = 0; i < h; i++)
+		for (int j = 0; j < w; j++)
+			IMG[i*w + j] = (double)pow((float)-1, (float)(i + j)) *complex<double>(input[(i*w + j) * 3], 0);*/
+
+
+	if (isLow) {
+		for (int i = 0; i < HW; ++i) {
+			int u = i % w - w/2;
+			int v = i / w - h / 2;
+			IMG[i] *= 1 / (1 + pow((sqrt(u*u + v * v) / CutOff), 2 * attenuation));
+		}
+	}
+	else {
+		for (int i = 0; i < HW; ++i) {
+			int u = i % w - w / 2;
+			int v = i / w - h / 2;
+			IMG[i] *= 1 - 1 / (1 + pow((sqrt(u*u + v * v) / CutOff), 2 * attenuation));
+		}
+	}
+
+	temppp = IMG;
+	//temppp = IMG;
+	//output
+	for (int i = 0; i < IMG.size(); i++)
+	{
+		double p = abs(IMG.at(i));
+		if (p > 255) p = 255;
+		if (p < 0) p = 0;
+		for (int j = 0; j < 3; j++)
+			output[i * 3 + j] = p;
+	}
+	inputIMG->UnlockBits(inputData);
+	outputIMG->UnlockBits(outputData);
+
+	return outputIMG;
+}
+
+
+
+void setTemppp(vector<complex<double>>& n) {
+	temppp = n;
 }

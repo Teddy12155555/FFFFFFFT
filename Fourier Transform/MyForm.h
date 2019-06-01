@@ -1,8 +1,8 @@
 #pragma once
-#include <iostream>
 #include "DataManager.h"
 #include "FT.h"
 bool TaiMing_method = false;
+using std::vector;
 namespace FourierTransform {
 
 	using namespace System;
@@ -315,6 +315,8 @@ private: System::Void openFileDialog1_FileOk(System::Object^  sender, System::Co
 	int N = OriginalImage->Width * scale;
 
 	dataManager = new DataManager(M,N);
+	//temppp = vector<vector<complex>>(M, vector<complex>(N));
+	vector<complex<double>> temp = vector<complex<double>>(M*N, 0);
 	for (int i = 0; i < OriginalImage->Height; i++)
 	{
 		for (int j = 0; j < OriginalImage->Width; j++)
@@ -322,9 +324,10 @@ private: System::Void openFileDialog1_FileOk(System::Object^  sender, System::Co
 			Color srcColor = OriginalImage->GetPixel(j, i); // 擷取每個點的顏色
 			int srcGrey = srcColor.R*0.299 + srcColor.G*0.587 + srcColor.B*0.144; // 彩色三通道轉成灰階
 			dataManager->SetPixel(j, i, srcGrey);
+			temp[i* N + j].real(srcGrey);
 		}
 	}
-
+	setTemppp(temp);
 	std::cout << "-Image has been loaded-" << std::endl;
 }
 private: System::Void discreteFourierTransformToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) 
@@ -381,17 +384,20 @@ private: System::Void inverseDiscreteFourierTransformToolStripMenuItem_Click(Sys
 }
 private: System::Void setResultImageAsSourceImageToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) 
 {
-	if (TaiMing_method)
+
+	pictureBox_SourceImage->Image = pictureBox_OutputImage->Image;
+	//TaiMing_method = false;
+	/*if (TaiMing_method)
 	{
 		pictureBox_SourceImage->Image = pictureBox_OutputImage->Image;
 		TaiMing_method = false;
 		return;
-	}
-	int w = dataManager->GetImageWidth();
+	}*/
+	/*int w = dataManager->GetImageWidth();
 	int h = dataManager->GetImageHeight();
 	Bitmap^ sImage = gcnew Bitmap(w, h);
 	GetImage(h, w, sImage);
-	pictureBox_SourceImage->Image = sImage;
+	pictureBox_SourceImage->Image = sImage;*/
 
 }
 private: void GetImage(int h, int w, Bitmap^& img) {
@@ -417,52 +423,35 @@ private: void GetImage(int h, int w, Bitmap^& img) {
 private: System::Void lowPassFilterToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
 	int w = dataManager->GetImageWidth();
 	int h = dataManager->GetImageHeight();
-	double ** filter = fourierTransformMethod->Filter(h, w, 1, 10, true);
-	
-	fourierTransformMethod->LowpassFilter(
-		dataManager->GetFreqReal(),
-		dataManager->GetOutputImage(),
-		filter, h, w);
-	Bitmap^ DFTImage = gcnew Bitmap(w, h);
-	GetImage(h, w, DFTImage);
-	pictureBox_OutputImage->Image = DFTImage;
+	Bitmap^ inputIMG = gcnew Bitmap(pictureBox_SourceImage->Image, w, h);
+	Bitmap^ OriginalImage = PassFilter(inputIMG, 5, 1, true);
+	pictureBox_OutputImage->Image = OriginalImage;
 
 }
 private: System::Void highPassFilterToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
 	int w = dataManager->GetImageWidth();
 	int h = dataManager->GetImageHeight();
-	double ** filter = fourierTransformMethod->Filter(h, w, 1, 10, false);
-
-	fourierTransformMethod->LowpassFilter(
-		dataManager->GetFreqReal(),
-		dataManager->GetOutputImage(),
-		filter, h, w);
-	Bitmap^ DFTImage = gcnew Bitmap(w, h);
-	GetImage(h, w, DFTImage);
-	pictureBox_OutputImage->Image = DFTImage;
+	Bitmap^ inputIMG = gcnew Bitmap(pictureBox_SourceImage->Image, w, h);
+	Bitmap^ OriginalImage = PassFilter(inputIMG, 5, 1, false);
+	pictureBox_OutputImage->Image = OriginalImage;
 
 }
 private: System::Void MyForm_Load(System::Object^  sender, System::EventArgs^  e) {
 }
 private: System::Void fastFourierTransformToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
 	TaiMing_method = true;
-	int w = dataManager->GetImageWidth(); int h = dataManager->GetImageHeight();
-	
+	int w = dataManager->GetImageWidth(); 
+	int h = dataManager->GetImageHeight();
 	Bitmap^ inputIMG = gcnew Bitmap(pictureBox_SourceImage->Image, w, h);
 	Bitmap^ OriginalImage = FFTtest(inputIMG);
-	
 	pictureBox_OutputImage->Image = OriginalImage;
 
-
-	
-
-	
 }
 private: System::Void pictureBox_SourceImage_Click(System::Object^  sender, System::EventArgs^  e) {
 }
 private: System::Void inverseFastFourierTransformToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
 	int w = dataManager->GetImageWidth(); int h = dataManager->GetImageHeight();
-	pictureBox_SourceImage->Image = pictureBox_OutputImage->Image;
+	//pictureBox_SourceImage->Image = pictureBox_OutputImage->Image;
 	Bitmap^ inputIMG = gcnew Bitmap(pictureBox_SourceImage->Image, w, h);
 	Bitmap^ OriginalImage = IFFTtest(inputIMG);
 	pictureBox_OutputImage->Image = OriginalImage;
